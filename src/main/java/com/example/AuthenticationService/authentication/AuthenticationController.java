@@ -8,6 +8,7 @@ import com.example.AuthenticationService.security.CookieAuthFilter;
 import com.example.AuthenticationService.security.config.WebSecurityConfig;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -34,7 +35,7 @@ public class AuthenticationController {
 //    private final String SessionCookie;
 
     @GetMapping("/signin")
-    public ResponseEntity<?> signIn(@RequestBody(required = false) UserDto userDto, HttpServletResponse response){
+    public ResponseEntity<?> signIn(@Valid @RequestBody UserDto userDto, HttpServletResponse response){
         try {
 
             String token = authenticationService.signIn(userDto);
@@ -63,7 +64,7 @@ public class AuthenticationController {
     @PostMapping("/signout")
     public ResponseEntity<?> signOut(@RequestBody UserDto userDto, HttpServletResponse response){
         try {
-            authenticationService.signOut(userDto);
+            authenticationService.signOut();
             //Remove Token from Redis
 
 

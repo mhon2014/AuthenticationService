@@ -3,6 +3,7 @@ package com.example.AuthenticationService.authentication;
 import com.example.AuthenticationService.dto.UserDto;
 import com.example.AuthenticationService.email.EmailValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,23 +15,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthenticationService {
 
-    private final EmailValidator emailValidator;
-
     //Holds the authentications from the DB
     private final AuthenticationManager authenticationManager;
 
 //    private final SessionService sessionService;
+    private final RedisTemplate<?, ?> redisTemplate;
 
     private final JWTService jwtService;
 
 
 
     public String signIn(UserDto userDto) throws Exception {
-        boolean isValidEmail = emailValidator.test(userDto.getEmail());
-
-        if (!isValidEmail) {
-            throw new IllegalStateException("Email not valid");
-        }
 
         UsernamePasswordAuthenticationToken userToken = new UsernamePasswordAuthenticationToken(
                 userDto.getEmail(), userDto.getPassword()

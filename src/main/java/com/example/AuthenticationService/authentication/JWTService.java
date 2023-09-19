@@ -46,7 +46,7 @@ public class JWTService {
                     .withSubject("userSession")
                     .build();
 
-            System.out.println("whatthefuck");
+            System.out.println("what");
             decodedJWT = verifier.verify(token);
             System.out.println(decodedJWT.getClaim("userID"));
             System.out.println(decodedJWT.getClaim("sessionID"));
