@@ -2,8 +2,6 @@ package com.example.AuthenticationService.authentication;
 
 import com.example.AuthenticationService.dto.UserDto;
 import com.example.AuthenticationService.email.EmailValidator;
-import com.example.AuthenticationService.security.PasswordEncoder;
-//import com.example.AuthenticationService.session.SessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,8 +13,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
-
-    private final PasswordEncoder passwordEncoder;
 
     private final EmailValidator emailValidator;
 
@@ -58,7 +54,7 @@ public class AuthenticationService {
 
     }
 
-    public void signOut(UserDto userDto) {
+    public void signOut() {
 
         //invalidate the token.
         SecurityContextHolder.clearContext();
