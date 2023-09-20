@@ -4,28 +4,33 @@ import com.example.AuthenticationService.appuser.AppUser;
 import com.example.AuthenticationService.appuser.AppUserRole;
 import com.example.AuthenticationService.appuser.AppUserService;
 import com.example.AuthenticationService.dto.UserDto;
-import com.example.AuthenticationService.security.CookieAuthFilter;
-import com.example.AuthenticationService.security.config.WebSecurityConfig;
+import com.example.AuthenticationService.security.JWTService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
 public class AuthenticationController {
 
-    private final AuthenticationService authenticationService;
+//    private final AuthenticationService authenticationService;
+
+    private final AuthenticationManager authenticationManager;
 
     private final JWTService jwtService;
 
@@ -35,14 +40,37 @@ public class AuthenticationController {
 //    private final String SessionCookie;
 
     @GetMapping("/signin")
-    public ResponseEntity<?> signIn(@Valid @RequestBody UserDto userDto, HttpServletResponse response){
+    public ResponseEntity<String> signIn(@Valid @RequestBody UserDto userDto, HttpServletResponse response){
         try {
 
-            String token = authenticationService.signIn(userDto);
-            Cookie authCookie = new Cookie("SESSION", token);
-            authCookie.setHttpOnly(true);
-            authCookie.setPath("/");
-            response.addCookie(authCookie);
+            UsernamePasswordAuthenticationToken userToken = new UsernamePasswordAuthenticationToken(
+                    userDto.getEmail(), userDto.getPassword()
+            );
+
+
+            Authentication user = authenticationManager.authenticate(userToken);
+            SecurityContext context;
+            String sessionId = UUID.randomUUID().toString();
+            System.out.println(user.isAuthenticated());
+
+            System.out.println("Yo why are you like this.");
+            if (user.isAuthenticated()) {
+                //use context to avoid race conditions, ie thread accessing the same data
+                context = SecurityContextHolder.createEmptyContext();
+                context.setAuthentication(userToken);
+                String token = jwtService.createToken(userDto, sessionId);
+                // STORE SESSION TOKEN ON REDIS DB
+
+
+                Cookie authCookie = new Cookie("SESSION", token);
+                authCookie.setHttpOnly(true);
+                authCookie.setPath("/");
+
+                response.addCookie(authCookie);
+            }
+            else {
+                throw new IllegalStateException("Not Authenticated");
+            }
         }
         catch (BadCredentialsException e){
             return new ResponseEntity<String>("User does not exist", HttpStatus.NOT_FOUND);
@@ -58,13 +86,14 @@ public class AuthenticationController {
             return new ResponseEntity<String>("", HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<String>(HttpStatus.OK);
     }
 
     @PostMapping("/signout")
-    public ResponseEntity<?> signOut(@RequestBody UserDto userDto, HttpServletResponse response){
+    public ResponseEntity<?> signOut(HttpServletResponse response){
         try {
-            authenticationService.signOut();
+            SecurityContextHolder.clearContext();
+//            authenticationService.signOut();
             //Remove Token from Redis
 
 
@@ -95,10 +124,19 @@ public class AuthenticationController {
 
     @RequestMapping("/verify")
     public ResponseEntity<?> verify(@RequestParam("token") String token, HttpServletResponse response){
-//        response.addCookie();
         //Verify account param
-        System.out.println(token);
-        appUserService.verifyToken(token);
+        try {
+
+            appUserService.verifyToken(token);
+
+            response.sendRedirect("/signin");
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+            return new ResponseEntity<String>("", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        //TODO: Add redirect to login page
+        //Set body response that user is verified
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

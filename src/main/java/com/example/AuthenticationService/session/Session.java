@@ -1,16 +1,15 @@
-package session;
+package com.example.AuthenticationService.session;
 
-import jakarta.persistence.Entity;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.springframework.data.redis.core.RedisHash;
 
 import java.io.Serializable;
 
-@Getter
-@Setter
-@Entity
-@RedisHash("session")
+
+@Data
+@EqualsAndHashCode
+@RedisHash()
 public class Session implements Serializable {
 
     private String id;
