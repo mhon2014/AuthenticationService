@@ -22,7 +22,8 @@ public class AppUserService implements UserDetailsService {
     private final static String USER_NOT_FOUND_MSG = "user with email %s not found";
     private final AppUserRepository appUserRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
-    private final VerificationTokenService verificationTokenService;
+
+//    private final VerificationTokenService verificationTokenService;
     private final EmailService emailService;
 
     //Find username
@@ -53,53 +54,9 @@ public class AppUserService implements UserDetailsService {
         appUser.setPassword(encodedPassword);
         //save user in repo
         appUserRepository.save(appUser);
-
-        //generate token for verification
-        String token = UUID.randomUUID().toString();
-
-        VerificationToken verificationToken = new VerificationToken(
-                token,
-                LocalDateTime.now(),
-                LocalDateTime.now().plusHours(24),
-                appUser
-        );
-
-        //save token into another table for verification
-        verificationTokenService.saveConfirmationToken(verificationToken);
-
-        //Send email verification
-        emailService.sendVerificationEmail(appUser.getEmail(), token);
-
     }
 
-    public void verifyToken(String token){
-        VerificationToken verificationToken = verificationTokenService
-                .getToken(token)
-                .orElseThrow(() -> new IllegalStateException("Invalid token"));
 
-        //check if account is already verified
-        if (verificationToken.isVerified()){
-            throw new IllegalStateException("Account already verified");
-        }
-
-        LocalDateTime expiredAt = verificationToken.getExpiredTime();
-
-        //check if token is expired
-        if(expiredAt.isBefore(LocalDateTime.now())){
-            //resend verification
-            throw new IllegalStateException("Verification is expired");
-        }
-
-        //Set account to verified
-        verificationTokenService.setVerify(token, true);
-
-        //enable the user
-        appUserRepository.enableAppUser(
-                verificationToken
-                        .getAppUser()
-                        .getEmail()
-        );
-    }
 
     //enable the user.
 //    public void enableAppUser(String email){

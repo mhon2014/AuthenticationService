@@ -4,7 +4,10 @@ import com.example.AuthenticationService.appuser.AppUser;
 import com.example.AuthenticationService.appuser.AppUserRole;
 import com.example.AuthenticationService.appuser.AppUserService;
 import com.example.AuthenticationService.dto.UserDto;
+import com.example.AuthenticationService.email.EmailService;
 import com.example.AuthenticationService.security.JWTService;
+import com.example.AuthenticationService.verification.VerificationToken;
+import com.example.AuthenticationService.verification.VerificationTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -21,6 +24,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RestController
@@ -35,6 +39,10 @@ public class AuthenticationController {
     private final JWTService jwtService;
 
     private final AppUserService appUserService;
+
+    private final VerificationTokenService verificationTokenService;
+
+    private final EmailService emailService;
 
 //    @Value("{$Spring.cookie-name}")
 //    private final String SessionCookie;
@@ -53,7 +61,6 @@ public class AuthenticationController {
             String sessionId = UUID.randomUUID().toString();
             System.out.println(user.isAuthenticated());
 
-            System.out.println("Yo why are you like this.");
             if (user.isAuthenticated()) {
                 //use context to avoid race conditions, ie thread accessing the same data
                 context = SecurityContextHolder.createEmptyContext();
@@ -107,13 +114,30 @@ public class AuthenticationController {
     @PostMapping("/signup")
     public ResponseEntity<?> signUp(@RequestBody UserDto userDto, HttpServletResponse response){
         try {
-            appUserService.signUpUser(
-                    new AppUser(
-                        userDto.getEmail(),
-                        userDto.getPassword(),
-                        AppUserRole.USER
-                        )
-                );
+
+            AppUser newUser = new AppUser(
+                    userDto.getEmail(),
+                    userDto.getPassword(),
+                    AppUserRole.USER
+            );
+
+            appUserService.signUpUser(newUser );
+
+            //generate token for verification
+            String token = UUID.randomUUID().toString();
+
+            VerificationToken verificationToken = new VerificationToken(
+                    token,
+                    LocalDateTime.now(),
+                    LocalDateTime.now().plusHours(24),
+                    newUser
+            );
+
+            //save token into another table for verification
+            verificationTokenService.saveConfirmationToken(verificationToken);
+
+            //Send email verification
+            emailService.sendVerificationEmail(newUser.getEmail(), token);
         }
         catch (IllegalStateException e){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -127,7 +151,7 @@ public class AuthenticationController {
         //Verify account param
         try {
 
-            appUserService.verifyToken(token);
+            verificationTokenService.verifyToken(token);
 
             response.sendRedirect("/signin");
         }
