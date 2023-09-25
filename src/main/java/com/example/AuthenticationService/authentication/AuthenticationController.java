@@ -47,14 +47,13 @@ public class AuthenticationController {
 //    @Value("{$Spring.cookie-name}")
 //    private final String SessionCookie;
 
-    @GetMapping("/signin")
+    @GetMapping("/login")
     public ResponseEntity<String> signIn(@Valid @RequestBody UserDto userDto, HttpServletResponse response){
         try {
 
             UsernamePasswordAuthenticationToken userToken = new UsernamePasswordAuthenticationToken(
                     userDto.getEmail(), userDto.getPassword()
             );
-
 
             Authentication user = authenticationManager.authenticate(userToken);
             SecurityContext context;
@@ -96,14 +95,12 @@ public class AuthenticationController {
         return new ResponseEntity<String>(HttpStatus.OK);
     }
 
-    @PostMapping("/signout")
+    @PostMapping("/logout")
     public ResponseEntity<?> signOut(HttpServletResponse response){
         try {
             SecurityContextHolder.clearContext();
 //            authenticationService.signOut();
             //Remove Token from Redis
-
-
         }
         catch (IllegalStateException e){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -111,33 +108,12 @@ public class AuthenticationController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/register")
     public ResponseEntity<?> signUp(@RequestBody UserDto userDto, HttpServletResponse response){
         try {
 
-            AppUser newUser = new AppUser(
-                    userDto.getEmail(),
-                    userDto.getPassword(),
-                    AppUserRole.USER
-            );
-
-            appUserService.signUpUser(newUser );
-
-            //generate token for verification
-            String token = UUID.randomUUID().toString();
-
-            VerificationToken verificationToken = new VerificationToken(
-                    token,
-                    LocalDateTime.now(),
-                    LocalDateTime.now().plusHours(24),
-                    newUser
-            );
-
-            //save token into another table for verification
-            verificationTokenService.saveConfirmationToken(verificationToken);
-
-            //Send email verification
-            emailService.sendVerificationEmail(newUser.getEmail(), token);
+            //register user
+            appUserService.registerUser(userDto);
         }
         catch (IllegalStateException e){
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -150,10 +126,8 @@ public class AuthenticationController {
     public ResponseEntity<?> verify(@RequestParam("token") String token, HttpServletResponse response){
         //Verify account param
         try {
-
             verificationTokenService.verifyToken(token);
-
-            response.sendRedirect("/signin");
+            response.sendRedirect("/login");
         }
         catch(Exception e){
             System.out.println(e.getMessage());

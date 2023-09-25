@@ -3,6 +3,8 @@ package com.example.AuthenticationService.email;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -19,6 +21,8 @@ public class EmailService {
 
     @Async
     public void sendVerificationEmail(String recipient, String token){
+
+        //TODO: GET DOMAIN IP ADDRESS, OR SEND VIA REQUEST IN THE PARAMETER
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");

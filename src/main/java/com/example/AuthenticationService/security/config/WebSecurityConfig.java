@@ -70,8 +70,8 @@ public class WebSecurityConfig {
                     auth.requestMatchers("/").permitAll();
 //                    auth.requestMatchers("/user").permitAll(); //permit authenticated users
                     auth.requestMatchers("/user/*").permitAll();
-                    auth.requestMatchers("/user/signin").permitAll();
-                    auth.requestMatchers("/user/signout").permitAll();
+                    auth.requestMatchers("/user/login").permitAll();
+                    auth.requestMatchers("/user/logout").permitAll();
                     auth.requestMatchers("/sessions/all").permitAll();
                     auth.anyRequest().authenticated();
                 })
